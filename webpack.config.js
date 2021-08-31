@@ -9,7 +9,7 @@ const staticFiles = {
 }
 
 class StaticFileMover {
-   
+
   constructor(srcDir, destDir, staticFiles) {
     this.staticFiles = staticFiles
     this.destDir = destDir
@@ -24,7 +24,7 @@ class StaticFileMover {
           const destDir = path.dirname(destFile)
           if (!fs.existsSync(destDir)) {
             console.log(`Creating ${destDir}`);
-            fs.mkdirSync(destDir, {recursive: true});
+            fs.mkdirSync(destDir, { recursive: true });
           }
           console.log(`Writing ${destFile}`);
           fs.copyFileSync(srcFile, destFile);

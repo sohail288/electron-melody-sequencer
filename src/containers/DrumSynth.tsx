@@ -26,7 +26,7 @@ function useInterval(callback: (...args: any) => void, delay: Nullable<number>) 
   // Set up the interval.
   React.useEffect(() => {
     function tick() {
-      (savedCallback as {current: (...args: any) => void}).current();
+      (savedCallback as { current: (...args: any) => void }).current();
     }
     if (delay !== null) {
       let id = setInterval(tick, delay);
@@ -54,15 +54,15 @@ class Sequencer {
   }
 
   handleTick() {
-    switch(this.steps[this.stepCounter]) {
+    switch (this.steps[this.stepCounter]) {
       case StepValueEnum.ON:
-          this.synthEngine.triggerAttackRelease("C4", "16n")
+        this.synthEngine.triggerAttackRelease("C4", "16n")
     }
     this.stepCounter = (this.stepCounter + 1) % this.steps.length
   }
 
   updateSteps(newSteps: StepValueEnum[]) {
-    this.steps = newSteps 
+    this.steps = newSteps
   }
 
   startTick(bpm: number) {
@@ -104,19 +104,33 @@ function DrumSynth() {
     Array(numSteps).fill(StepValueEnum.OFF)
   )
   const [stepCounter, setStepCounter] = React.useState<number>(0)
-  const [synthEngine, setSynthEngine] = React.useState<Nullable<Tone.Synth>>(null)
+  // const [synthEngine, setSynthEngine] = React.useState<Nullable<Tone.Synth>>(null)
+  const [synthEngines, setSynthEngines] = React.useState<Nullable<Tone.Synth[]>>(null)
+  const [volumeNodes, setVolumeNodes] = React.useState<Nullable<Tone.Volume[]>>(null)
   // const [engine, setEngine] = React.useState<Nullable<Sequencer>>(new Sequencer(steps, bpm))
-  console.log("rendering")
+  //console.log("rendering")
 
 
   useInterval(() => {
-    setStepCounter((stepCounter + 1) % steps.length) 
+    setStepCounter((stepCounter + 1) % steps.length)
   }, mode === ModeEnum.PLAYING ? calculateInterval(bpm) : null)
 
   React.useEffect(() => {
-    if (!synthEngine) {
-      console.log("loading synth engine(s)")
-      setSynthEngine(new Tone.Synth().toDestination())
+    if (!synthEngines) {
+      //console.log("loading synth engine(s)")
+      let newSynthEngines = Array(numTracks).fill(0).map(() => new Tone.Synth())
+      let volumeNodes: Tone.Volume[] = []
+
+      // connect the volume and pan nodes
+      // mutates the volumes
+      let connectedSynths = newSynthEngines.map(synthEngine => {
+        let newVolumeNode = new Tone.Volume(-12)
+        volumeNodes.push(newVolumeNode)
+        return synthEngine.chain(newVolumeNode, Tone.Destination)
+      })
+
+      setSynthEngines(connectedSynths.map(se => se.toDestination()))
+      setVolumeNodes(volumeNodes)
     }
   }, [])
 
@@ -131,18 +145,18 @@ function DrumSynth() {
   }, [mode])
 
   React.useEffect(() => {
-    if (mode !== ModeEnum.PLAYING || !synthEngine) {
+    if (mode !== ModeEnum.PLAYING || !synthEngines) {
       return
     }
 
     if (steps[stepCounter] === StepValueEnum.ON) {
-      console.log(stepCounter)
-      synthEngine.triggerAttackRelease(["C4", "C3", "A4", "E3"][Math.floor(Math.random() * 4)], "16n") 
+      //console.log(stepCounter)
+      synthEngines[0].triggerAttackRelease(["C4", "C3", "A4", "E3"][Math.floor(Math.random() * 4)], "16n")
     }
   }, [mode, stepCounter])
 
   function setStep(id: number, value: StepValueEnum) {
-    console.log(id, value)
+    //console.log(id, value)
     steps[id] = value
     const newSteps = [...steps]
     setSteps(newSteps)
@@ -154,19 +168,41 @@ function DrumSynth() {
 
   function handleSetMode(newMode: ModeEnum) {
     // use case?
-    console.log(newMode, mode)
+    //console.log(newMode, mode)
     if (mode === newMode) {
       return /* no op or pause*/
     }
     setMode(newMode)
     if (newMode === ModeEnum.STOPPED) {
       // reset play state
-      console.log("now stopped")
+      //console.log("now stopped")
     }
     if (newMode === ModeEnum.PLAYING) {
       // play
-      console.log("now playing")
+      //console.log("now playing")
     }
+  }
+
+  function getVolume(i: number): number {
+    if (!volumeNodes)
+      return 0  // default to off?
+    //console.log(Tone.dbToGain(volumeNodes[i].volume.value) * 127)
+    return Tone.dbToGain(volumeNodes[i].volume.value) * 100
+  }
+
+  function getPan(i: number): number {
+    return 0
+  }
+
+  function handleSetTrackVolume(i: number, val: number) {
+    if (volumeNodes) {
+      volumeNodes[i].set({ volume: Tone.gainToDb(val / 100) })
+      setVolumeNodes([...volumeNodes])
+    }
+  }
+
+  function handleSetTrackPan(i: number, val: number) {
+
   }
 
   return <div style={styles}>
@@ -182,13 +218,13 @@ function DrumSynth() {
         outline: "2px solid black"
       }}
     >
-      <Display 
-        mode={mode} 
+      <Display
+        mode={mode}
         bpm={bpm}
         currentStep={stepCounter}
       />
-      <GlobalTransport 
-        onUpdateBpm={handleSetBpm} 
+      <GlobalTransport
+        onUpdateBpm={handleSetBpm}
         onUpdateMode={handleSetMode}
       />
     </div>
@@ -204,9 +240,9 @@ function DrumSynth() {
         )
       }
     </div>
-    <div style={{ marginLeft: "58px", marginRight: "58px", height: "138px", display: "flex", justifyContent: "space-between"}}>
+    <div style={{ marginLeft: "58px", marginRight: "58px", height: "138px", display: "flex", justifyContent: "space-between" }}>
       {
-        Array(numTracks).fill(null).map( (_, i) => <TrackController key={i} onSetTrackPan={(val) => console.log(val)} onSetTrackVolume={(val) => console.log(val)}/>
+        Array(numTracks).fill(null).map((_, i) => <TrackController key={i} onSetTrackPan={(val) => handleSetTrackPan(i, val)} onSetTrackVolume={(val) => handleSetTrackVolume(i, val)} volume={getVolume(i)} pan={getPan(i)} />
 
         )
       }
