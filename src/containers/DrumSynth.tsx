@@ -4,7 +4,7 @@ import ActionLedButton from '../components/ActionLedButton';
 import Display from '../components/Display';
 import GlobalTransport from '../components/GlobalTransport';
 import TrackController from '../components/TrackController';
-import { ModeEnum, Nullable, StepParams, StepValueEnum } from '../types';
+import { ModeEnum, Note, Nullable, StepParams, StepValueEnum } from '../types';
 
 const styles = {
   display: "flex",
@@ -96,6 +96,112 @@ class Sequencer {
 }
 
 // const synthEngine = new Tone.Synth().toDestination();
+//
+
+interface NoteConfig {
+  note: Note;
+  octaveAdjustment?: number;
+  isSharp?: boolean
+}
+
+type SelectedNote = { octave: number } & NoteConfig
+
+function isSameNote(stepParam: StepParams, noteConfig: NoteConfig, currentOctave: number): boolean {
+  // octave is weird...
+  // all playing notes should have there octave reduced if it changes?
+  return stepParam.note === noteConfig.note
+    && stepParam.isSharp === noteConfig.isSharp
+    && stepParam.octave === ((noteConfig.octaveAdjustment || 0) + currentOctave)
+}
+
+const keyConfigs: {
+  black: NoteConfig[],
+  white: NoteConfig[]
+} = {
+  black: [
+    {
+      note: "F",
+      isSharp: true,
+      octaveAdjustment: -1
+    },
+    {
+      note: "G",
+      isSharp: true,
+      octaveAdjustment: -1
+    },
+    {
+      note: "A",
+      isSharp: true,
+      octaveAdjustment: -1
+    },
+    {
+      note: "C",
+      isSharp: true,
+    },
+    {
+      note: "D",
+      isSharp: true,
+    },
+    {
+      note: "F",
+      isSharp: true,
+    },
+    {
+      note: "G",
+      isSharp: true,
+    },
+    {
+      note: "A",
+      isSharp: true,
+    }
+  ],
+  white: [
+    {
+      note: 'F',
+      octaveAdjustment: -1
+    },
+    {
+      note: 'G',
+      octaveAdjustment: -1
+    },
+    {
+      note: 'A',
+      octaveAdjustment: -1
+    },
+    {
+      note: 'B',
+      octaveAdjustment: -1
+    },
+    {
+      note: 'C',
+    },
+    {
+      note: 'D',
+    },
+    {
+      note: 'E',
+    },
+    {
+      note: 'F',
+    },
+    {
+      note: 'G',
+    },
+    {
+      note: 'A',
+    },
+    {
+      note: 'B',
+    },
+  ]
+}
+
+function getNoteLeftMargin(i: number, note: Note) {
+  if (note === "C" || note === "F") {
+    return i > 0 ? 29 * 2 : 29
+  }
+  return 0
+}
 
 function DrumSynth() {
   const [bpm, setBpm] = React.useState<number>(120)
@@ -115,6 +221,7 @@ function DrumSynth() {
   const [volumeNodes, setVolumeNodes] = React.useState<Nullable<Tone.Volume[]>>(null)
   const [panNodes, setPanNodes] = React.useState<Nullable<Tone.Panner[]>>(null)
   const [currentTrack, setCurrentTrack] = React.useState(1)
+  const [currentNoteSelected, setCurrentNoteSelected] = React.useState<SelectedNote>({ note: "C", octave: 4 })
   // const [engine, setEngine] = React.useState<Nullable<Sequencer>>(new Sequencer(steps, bpm))
   //console.log("rendering")
 
@@ -163,7 +270,8 @@ function DrumSynth() {
 
     stepPatterns.forEach((pat, i) => {
       if (pat[stepCounter].state === StepValueEnum.ON || pat[stepCounter].state === StepValueEnum.ACCENT) {
-        synthEngines[i].triggerAttackRelease(`${pat[i].note}${currentOctave}`, "16n")
+        let noteToTrigger = `${pat[stepCounter].note}${pat[stepCounter].isSharp ? '#' : ''}${pat[stepCounter].octave || currentOctave}`
+        synthEngines[i].triggerAttackRelease(noteToTrigger, '16n')
       }
     })
     // if (steps[stepCounter] === StepValueEnum.ON) {
@@ -172,9 +280,16 @@ function DrumSynth() {
     // }
   }, [mode, stepCounter])
 
-  function setStep(id: number, value: StepValueEnum) {
+  function setStep(id: number, stepValue: StepValueEnum) {
     //console.log(id, value)
-    stepPatterns[currentTrack][id].state = value
+    console.log(stepPatterns[currentTrack])
+    let selectedNote = currentNoteSelected
+    let step = stepPatterns[currentTrack][id]
+    step.state = stepValue
+    step.isSharp = selectedNote.isSharp
+    step.octave = currentOctave + (selectedNote.octaveAdjustment || 0)
+    step.note = selectedNote.note
+
     const newStepPatterns = [...stepPatterns]
     setStepPatterns(newStepPatterns)
   }
@@ -207,6 +322,7 @@ function DrumSynth() {
     //console.log(Tone.dbToGain(volumeNodes[i].volume.value) * 127)
     return Tone.dbToGain(volumeNodes[i].volume.value) * 100
   }
+
 
   function getPan(i: number): number {
     if (!panNodes)
@@ -280,6 +396,80 @@ function DrumSynth() {
 
         )
       }
+    </div>
+    <div style={{ display: "flex", margin: "20px 58px", height: "87px" }}>
+      <div style={{ backgroundColor: "darkgray", width: "194px", marginRight: "43px" }}>
+      </div>
+
+      <div style={{ display: "flex", justifyContent: "space-between", flexDirection: "column" }}>
+        <div style={{ display: "flex", justifyContent: "start" }}>
+          {/* black keys */}
+          {
+            /* TODO: reduce code dupe */
+            keyConfigs.black.map((noteConfig, i) => <ActionLedButton
+              key={i}
+              isPressed={isSameNote(stepPatterns[currentTrack][stepCounter], noteConfig, currentOctave)}
+              isBacklightOn={
+                currentNoteSelected.note === noteConfig.note
+                && currentNoteSelected.isSharp === noteConfig.isSharp
+                && currentNoteSelected.octave === currentOctave
+                && currentNoteSelected.octaveAdjustment === noteConfig.octaveAdjustment
+              }
+              onButtonPress={
+                () => {
+                  setCurrentNoteSelected({
+                    note: noteConfig.note,
+                    isSharp: noteConfig.isSharp,
+                    octave: currentOctave,
+                    octaveAdjustment: noteConfig.octaveAdjustment
+                  })
+                  if (synthEngines) {
+                    synthEngines[currentTrack].triggerAttackRelease(`${noteConfig.note}${noteConfig.isSharp ? '#' : ''}${currentOctave + (noteConfig.octaveAdjustment || 0)}`, '16n')
+                  }
+                }
+              }
+
+              // C and F are compensated to get left margins while other notes will have right margins
+              styleProps={{
+                marginLeft: getNoteLeftMargin(i, noteConfig.note),
+                marginRight: 29
+
+              }}
+              colorOff="black"
+            />)
+          }
+        </div>
+        <div style={{ display: "flex", justifyContent: "start" }}>
+          {/* white keys */}
+          {
+            keyConfigs.white.map((noteConfig, i) => <ActionLedButton
+              key={i}
+              isPressed={isSameNote(stepPatterns[currentTrack][stepCounter], noteConfig, currentOctave)}
+              isBacklightOn={
+                currentNoteSelected.note === noteConfig.note
+                && currentNoteSelected.isSharp === noteConfig.isSharp
+                && currentNoteSelected.octave === currentOctave
+                && currentNoteSelected.octaveAdjustment === noteConfig.octaveAdjustment
+              }
+              onButtonPress={
+                () => {
+                  setCurrentNoteSelected({
+                    note: noteConfig.note,
+                    isSharp: noteConfig.isSharp,
+                    octave: currentOctave,
+                    octaveAdjustment: noteConfig.octaveAdjustment
+                  })
+                  if (synthEngines) {
+                    synthEngines[currentTrack].triggerAttackRelease(`${noteConfig.note}${noteConfig.isSharp ? '#' : ''}${currentOctave + (noteConfig.octaveAdjustment || 0)}`, '16n')
+                  }
+                }
+              }
+              styleProps={{ marginRight: 29 }}
+              colorOff="beige"
+            />)
+          }
+        </div>
+      </div>
     </div>
   </div>
 }

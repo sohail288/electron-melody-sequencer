@@ -23,7 +23,7 @@ export default (props: Props) => {
     <div style={{ height: "50%", display: "flex", justifyContent: "space-evenly", alignItems: "center" }}>
       <TransportButton isPressed={false} isBacklightOn={false} onButtonPress={() => props.onUpdateMode(ModeEnum.PLAYING)} content={<span>p</span>} />
 
-      <TransportButton isPressed={false} isBacklightOn={false} onButtonPress={() => props.onUpdateMode(ModeEnum.STOPPED)} content={<span>s</span>}/>
+      <TransportButton isPressed={false} isBacklightOn={false} onButtonPress={() => props.onUpdateMode(ModeEnum.STOPPED)} content={<span>s</span>} />
     </div>
   </div>
 }
