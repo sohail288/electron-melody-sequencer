@@ -220,7 +220,7 @@ function DrumSynth() {
   const [synthEngines, setSynthEngines] = React.useState<Nullable<Tone.Synth[]>>(null)
   const [volumeNodes, setVolumeNodes] = React.useState<Nullable<Tone.Volume[]>>(null)
   const [panNodes, setPanNodes] = React.useState<Nullable<Tone.Panner[]>>(null)
-  const [currentTrack, setCurrentTrack] = React.useState(1)
+  const [currentTrack, setCurrentTrack] = React.useState(0)
   const [currentNoteSelected, setCurrentNoteSelected] = React.useState<SelectedNote>({ note: "C", octave: 4 })
   // const [engine, setEngine] = React.useState<Nullable<Sequencer>>(new Sequencer(steps, bpm))
   //console.log("rendering")
