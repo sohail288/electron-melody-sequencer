@@ -26,4 +26,26 @@ export interface DrumSynthState {
   currentTrack?: number,
 }
 
+export type Note = "A" | "B" | "C" | "D" | "E" | "F" | "G"
+export type Octave = number
+
+export interface Envelope {
+  attack: number;
+  delay: number;
+  sustain: number;
+  release: number;
+}
+
+export interface StepParams {
+  state: StepValueEnum;
+  note: Note;
+  octave?: Octave;
+  isSharp?: boolean;
+  recordedParameters?: {
+    recordedVolume?: number
+    recordedPan?: number,
+    envelope?: Envelope
+  }
+}
+
 export type Nullable<T> = T | null

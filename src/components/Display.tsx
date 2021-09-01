@@ -5,6 +5,7 @@ interface Props {
   mode: ModeEnum;
   bpm: number;
   currentStep: number;
+  currentTrack: number;
 }
 
 const modeDisplayMap = {
@@ -29,7 +30,7 @@ export default (props: Props) => {
     </div>
     <hr style={{ width: "50%" }} />
     <div style={{ height: "50%", textAlign: "center" }}>
-      {modeDisplayMap[props.mode]} - 1 - {props.bpm} - {props.currentStep + 1}
+      {modeDisplayMap[props.mode]} - {props.currentTrack + 1} - {props.bpm} - {props.currentStep + 1}
     </div>
   </div>
 }

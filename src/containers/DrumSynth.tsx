@@ -4,7 +4,7 @@ import ActionLedButton from '../components/ActionLedButton';
 import Display from '../components/Display';
 import GlobalTransport from '../components/GlobalTransport';
 import TrackController from '../components/TrackController';
-import { ModeEnum, Nullable, StepValueEnum } from '../types';
+import { ModeEnum, Nullable, StepParams, StepValueEnum } from '../types';
 
 const styles = {
   display: "flex",
@@ -100,19 +100,27 @@ class Sequencer {
 function DrumSynth() {
   const [bpm, setBpm] = React.useState<number>(120)
   const [mode, setMode] = React.useState<ModeEnum>(ModeEnum.STOPPED)
-  const [steps, setSteps] = React.useState<StepValueEnum[]>(
-    Array(numSteps).fill(StepValueEnum.OFF)
+  const [currentOctave] = React.useState(4)
+  const [stepPatterns, setStepPatterns] = React.useState<StepParams[][]>(
+    Array(numTracks).fill(undefined).map(
+      () => Array(numSteps).fill(undefined).map(() => ({
+        state: StepValueEnum.OFF,
+        note: "C",
+      }))
+    )
   )
   const [stepCounter, setStepCounter] = React.useState<number>(0)
   // const [synthEngine, setSynthEngine] = React.useState<Nullable<Tone.Synth>>(null)
   const [synthEngines, setSynthEngines] = React.useState<Nullable<Tone.Synth[]>>(null)
   const [volumeNodes, setVolumeNodes] = React.useState<Nullable<Tone.Volume[]>>(null)
+  const [panNodes, setPanNodes] = React.useState<Nullable<Tone.Panner[]>>(null)
+  const [currentTrack, setCurrentTrack] = React.useState(1)
   // const [engine, setEngine] = React.useState<Nullable<Sequencer>>(new Sequencer(steps, bpm))
   //console.log("rendering")
 
 
   useInterval(() => {
-    setStepCounter((stepCounter + 1) % steps.length)
+    setStepCounter((stepCounter + 1) % numSteps)
   }, mode === ModeEnum.PLAYING ? calculateInterval(bpm) : null)
 
   React.useEffect(() => {
@@ -120,17 +128,21 @@ function DrumSynth() {
       //console.log("loading synth engine(s)")
       let newSynthEngines = Array(numTracks).fill(0).map(() => new Tone.Synth())
       let volumeNodes: Tone.Volume[] = []
+      let panNodes: Tone.Panner[] = []
 
       // connect the volume and pan nodes
       // mutates the volumes
       let connectedSynths = newSynthEngines.map(synthEngine => {
         let newVolumeNode = new Tone.Volume(-12)
+        let newPanNode = new Tone.Panner(0)
         volumeNodes.push(newVolumeNode)
-        return synthEngine.chain(newVolumeNode, Tone.Destination)
+        panNodes.push(newPanNode)
+        return synthEngine.chain(newVolumeNode, newPanNode, Tone.Destination)
       })
 
       setSynthEngines(connectedSynths.map(se => se.toDestination()))
       setVolumeNodes(volumeNodes)
+      setPanNodes(panNodes)
     }
   }, [])
 
@@ -149,17 +161,22 @@ function DrumSynth() {
       return
     }
 
-    if (steps[stepCounter] === StepValueEnum.ON) {
-      //console.log(stepCounter)
-      synthEngines[0].triggerAttackRelease(["C4", "C3", "A4", "E3"][Math.floor(Math.random() * 4)], "16n")
-    }
+    stepPatterns.forEach((pat, i) => {
+      if (pat[stepCounter].state === StepValueEnum.ON || pat[stepCounter].state === StepValueEnum.ACCENT) {
+        synthEngines[i].triggerAttackRelease(`${pat[i].note}${currentOctave}`, "16n")
+      }
+    })
+    // if (steps[stepCounter] === StepValueEnum.ON) {
+    //console.log(stepCounter)
+    // synthEngines[0].triggerAttackRelease(["C4", "C3", "A4", "E3"][Math.floor(Math.random() * 4)], "16n")
+    // }
   }, [mode, stepCounter])
 
   function setStep(id: number, value: StepValueEnum) {
     //console.log(id, value)
-    steps[id] = value
-    const newSteps = [...steps]
-    setSteps(newSteps)
+    stepPatterns[currentTrack][id].state = value
+    const newStepPatterns = [...stepPatterns]
+    setStepPatterns(newStepPatterns)
   }
 
   function handleSetBpm(newBpm: number) {
@@ -183,6 +200,7 @@ function DrumSynth() {
     }
   }
 
+
   function getVolume(i: number): number {
     if (!volumeNodes)
       return 0  // default to off?
@@ -191,7 +209,9 @@ function DrumSynth() {
   }
 
   function getPan(i: number): number {
-    return 0
+    if (!panNodes)
+      return 0
+    return panNodes[i].pan.value * 50
   }
 
   function handleSetTrackVolume(i: number, val: number) {
@@ -202,6 +222,10 @@ function DrumSynth() {
   }
 
   function handleSetTrackPan(i: number, val: number) {
+    if (panNodes) {
+      panNodes[i].set({ pan: val / 50 })
+      setPanNodes([...panNodes])
+    }
 
   }
 
@@ -222,6 +246,7 @@ function DrumSynth() {
         mode={mode}
         bpm={bpm}
         currentStep={stepCounter}
+        currentTrack={currentTrack}
       />
       <GlobalTransport
         onUpdateBpm={handleSetBpm}
@@ -230,19 +255,28 @@ function DrumSynth() {
     </div>
     <div style={{ display: "flex", justifyContent: "space-between", margin: "33px 58px" }}>
       {
-        steps.map((d, i) => <ActionLedButton
+        stepPatterns[currentTrack].map(({ state: d }, i) => <ActionLedButton
           key={i}
-          isPressed={steps[i] === StepValueEnum.ON}
+          isPressed={d === StepValueEnum.ON}
           isBacklightOn={stepCounter === i && mode == ModeEnum.PLAYING}
-          onButtonPress={() => setStep(i, steps[i] === StepValueEnum.ON ? StepValueEnum.OFF : StepValueEnum.ON)}
+          onButtonPress={() => setStep(i, d === StepValueEnum.ON ? StepValueEnum.OFF : StepValueEnum.ON)}
 
         />
         )
       }
     </div>
-    <div style={{ marginLeft: "58px", marginRight: "58px", height: "138px", display: "flex", justifyContent: "space-between" }}>
+    <div style={{ marginLeft: "58px", marginRight: "58px", height: "155px", display: "flex", justifyContent: "space-between" }}>
       {
-        Array(numTracks).fill(null).map((_, i) => <TrackController key={i} onSetTrackPan={(val) => handleSetTrackPan(i, val)} onSetTrackVolume={(val) => handleSetTrackVolume(i, val)} volume={getVolume(i)} pan={getPan(i)} />
+        Array(numTracks).fill(null).map((_, i) => <
+          TrackController
+          key={i}
+          onSetTrackPan={(val) => handleSetTrackPan(i, val)}
+          onSetTrackVolume={(val) => handleSetTrackVolume(i, val)}
+          volume={getVolume(i)}
+          pan={getPan(i)}
+          onSelectTrack={() => setCurrentTrack(i)}
+          trackNumber={i + 1}
+        />
 
         )
       }
