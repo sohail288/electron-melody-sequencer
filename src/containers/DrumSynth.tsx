@@ -36,7 +36,7 @@ function useInterval(callback: (...args: any) => void, delay: Nullable<number>) 
 }
 
 // calculates interval given bpm
-const calculateInterval = (bpm: number) => (bpm / 60 / 16) * 1000
+const calculateInterval = (bpm: number) => (1 / ((bpm * 4 ) / 60 )) * 1000
 
 class Sequencer {
   timer: Nullable<NodeJS.Timer>
