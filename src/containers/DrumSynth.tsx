@@ -100,6 +100,7 @@ class Sequencer {
 
 interface NoteConfig {
   note: Note;
+  bind?: string;
   octaveAdjustment?: number;
   isSharp?: boolean
 }
@@ -121,80 +122,105 @@ const keyConfigs: {
   black: [
     {
       note: "F",
+      bind: 'w',
       isSharp: true,
       octaveAdjustment: -1
     },
     {
       note: "G",
+      bind: 'e',
       isSharp: true,
       octaveAdjustment: -1
     },
     {
       note: "A",
+      bind: 'r',
       isSharp: true,
       octaveAdjustment: -1
     },
     {
       note: "C",
+      bind: 'y',
       isSharp: true,
     },
     {
       note: "D",
+      bind: 'u',
       isSharp: true,
     },
     {
       note: "F",
+      bind: 'o',
       isSharp: true,
     },
     {
       note: "G",
+      bind: 'p',
       isSharp: true,
     },
     {
       note: "A",
+      bind: '[',
       isSharp: true,
     }
   ],
   white: [
     {
       note: 'F',
+      bind: 'a',
       octaveAdjustment: -1
     },
     {
       note: 'G',
+      bind: 's',
       octaveAdjustment: -1
     },
     {
       note: 'A',
+      bind: 'd',
       octaveAdjustment: -1
     },
     {
       note: 'B',
+      bind: 'f',
       octaveAdjustment: -1
     },
     {
       note: 'C',
+      bind: 'g',
     },
     {
       note: 'D',
+      bind: 'h',
     },
     {
       note: 'E',
+      bind: 'j',
     },
     {
       note: 'F',
+      bind: 'k',
     },
     {
       note: 'G',
+      bind: 'l',
     },
     {
       note: 'A',
+      bind: ';',
     },
     {
       note: 'B',
+      bind: '\'',
     },
   ]
-}
+};
+
+const keyBindingToNoteConfig = [...keyConfigs.black, ...keyConfigs.white].reduce((acc: { [key: string]: NoteConfig }, noteConfig: NoteConfig) => {
+  if (!noteConfig?.bind)
+    return acc
+  return { ...acc, [noteConfig.bind]: noteConfig }
+}, {})
 
 function getNoteLeftMargin(i: number, note: Note) {
   if (note === "C" || note === "F") {
@@ -204,7 +230,7 @@ function getNoteLeftMargin(i: number, note: Note) {
 }
 
 function DrumSynth() {
-  const [bpm, setBpm] = React.useState<number>(120)
+  const [bpm, setBpm] = React.useState<number>(80)
   const [mode, setMode] = React.useState<ModeEnum>(ModeEnum.STOPPED)
   const [currentOctave] = React.useState(4)
   const [stepPatterns, setStepPatterns] = React.useState<StepParams[][]>(
@@ -252,6 +278,41 @@ function DrumSynth() {
       setPanNodes(panNodes)
     }
   }, [])
+
+  function handlePlayNote(noteConfig: NoteConfig, octave: number) {
+
+  }
+
+  function getCurrentOctave(): number {
+    return currentOctave
+  }
+
+  function getCurrentTrack(): number {
+    return currentTrack
+  }
+
+  function handleKeyPress(key: string): void {
+      const noteConfig = keyBindingToNoteConfig[key]
+      if (noteConfig) {
+        setCurrentNoteSelected({
+          note: noteConfig.note,
+          isSharp: noteConfig.isSharp,
+          octave: getCurrentOctave(),
+          octaveAdjustment: noteConfig.octaveAdjustment
+        })
+        console.log(currentTrack, getCurrentTrack())
+        if (synthEngines) {
+          synthEngines[getCurrentTrack()].triggerAttackRelease(`${noteConfig.note}${noteConfig.isSharp ? '#' : ''}${getCurrentOctave() + (noteConfig.octaveAdjustment || 0)}`, '16n')
+        }
+
+      }
+  }
+
+
+  React.useEffect(() => {
+    // set up keys
+    document.addEventListener('keypress', e => handleKeyPress(e.key))
+  }, [synthEngines])
 
   React.useEffect(() => {
     if (mode === ModeEnum.PLAYING) {
