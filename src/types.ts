@@ -49,3 +49,13 @@ export interface StepParams {
 }
 
 export type Nullable<T> = T | null
+
+export interface NoteConfig {
+  note: Note;
+  bind?: string;
+  octaveAdjustment?: number;
+  isSharp?: boolean
+}
+
+export type SelectedNote = { octave: number } & NoteConfig
+

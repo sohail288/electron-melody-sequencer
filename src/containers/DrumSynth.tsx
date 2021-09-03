@@ -4,108 +4,27 @@ import ActionLedButton from '../components/ActionLedButton';
 import Display from '../components/Display';
 import GlobalTransport from '../components/GlobalTransport';
 import TrackController from '../components/TrackController';
-import { ModeEnum, Note, Nullable, StepParams, StepValueEnum } from '../types';
+import TrackControls from '../components/TrackControls';
+import { useInterval } from '../hooks';
+import { keyConfigs, keyBindingToNoteConfig } from '../keyConfigs';
+import { ModeEnum, Note, Nullable, StepParams, StepValueEnum, NoteConfig, SelectedNote } from '../types';
 
 const styles = {
   display: "flex",
   flexDirection: "column",
-  height: "100%"
+  height: "100%",
+  overflowY: 'hidden'
 } as const
 
 const numSteps = 16;
 const numTracks = 8;
 
-function useInterval(callback: (...args: any) => void, delay: Nullable<number>) {
-  const savedCallback = React.useRef<(...args: any) => void>();
-
-  // Remember the latest callback.
-  React.useEffect(() => {
-    savedCallback.current = callback;
-  }, [callback]);
-
-  // Set up the interval.
-  React.useEffect(() => {
-    function tick() {
-      (savedCallback as { current: (...args: any) => void }).current();
-    }
-    if (delay !== null) {
-      let id = setInterval(tick, delay);
-      return () => clearInterval(id);
-    }
-  }, [delay]);
-}
-
 // calculates interval given bpm
-const calculateInterval = (bpm: number) => (1 / ((bpm * 4 ) / 60 )) * 1000
-
-class Sequencer {
-  timer: Nullable<NodeJS.Timer>
-  stepCounter: number
-  bpm: number
-  steps: StepValueEnum[]
-  synthEngine: Tone.Synth
-
-  constructor(steps: StepValueEnum[], bpm: number) {
-    this.timer = null
-    this.stepCounter = 0
-    this.bpm = bpm
-    this.steps = steps
-    this.synthEngine = new Tone.Synth().toDestination()
-  }
-
-  handleTick() {
-    switch (this.steps[this.stepCounter]) {
-      case StepValueEnum.ON:
-        this.synthEngine.triggerAttackRelease("C4", "16n")
-    }
-    this.stepCounter = (this.stepCounter + 1) % this.steps.length
-  }
-
-  updateSteps(newSteps: StepValueEnum[]) {
-    this.steps = newSteps
-  }
-
-  startTick(bpm: number) {
-    if (!this.timer)
-      this.timer = setInterval(
-        this.handleTick, calculateInterval(this.bpm)
-      )
-  }
-
-  isStarted() {
-    return this.timer !== null
-  }
-
-  reset() {
-    if (this.timer) {
-      clearInterval(this.timer)
-    }
-    this.stepCounter = 0
-  }
-
-  updateBpm(bpm: number) {
-    if (bpm === this.bpm)
-      return
-    this.bpm = bpm
-
-    // change existing timer
-    if (this.timer) {
-      clearInterval(this.timer)
-    }
-  }
-}
+// we multiple the bpm by 4 because we want to know how much elapsed time is between each step (1 beat = 4 steps)
+const calculateInterval = (bpm: number) => (1 / ((bpm * 4) / 60)) * 1000
 
 // const synthEngine = new Tone.Synth().toDestination();
 //
-
-interface NoteConfig {
-  note: Note;
-  bind?: string;
-  octaveAdjustment?: number;
-  isSharp?: boolean
-}
-
-type SelectedNote = { octave: number } & NoteConfig
 
 function isSameNote(stepParam: StepParams, noteConfig: NoteConfig, currentOctave: number): boolean {
   // octave is weird...
@@ -114,113 +33,6 @@ function isSameNote(stepParam: StepParams, noteConfig: NoteConfig, currentOctave
     && stepParam.isSharp === noteConfig.isSharp
     && stepParam.octave === ((noteConfig.octaveAdjustment || 0) + currentOctave)
 }
-
-const keyConfigs: {
-  black: NoteConfig[],
-  white: NoteConfig[]
-} = {
-  black: [
-    {
-      note: "F",
-      bind: 'w',
-      isSharp: true,
-      octaveAdjustment: -1
-    },
-    {
-      note: "G",
-      bind: 'e',
-      isSharp: true,
-      octaveAdjustment: -1
-    },
-    {
-      note: "A",
-      bind: 'r',
-      isSharp: true,
-      octaveAdjustment: -1
-    },
-    {
-      note: "C",
-      bind: 'y',
-      isSharp: true,
-    },
-    {
-      note: "D",
-      bind: 'u',
-      isSharp: true,
-    },
-    {
-      note: "F",
-      bind: 'o',
-      isSharp: true,
-    },
-    {
-      note: "G",
-      bind: 'p',
-      isSharp: true,
-    },
-    {
-      note: "A",
-      bind: '[',
-      isSharp: true,
-    }
-  ],
-  white: [
-    {
-      note: 'F',
-      bind: 'a',
-      octaveAdjustment: -1
-    },
-    {
-      note: 'G',
-      bind: 's',
-      octaveAdjustment: -1
-    },
-    {
-      note: 'A',
-      bind: 'd',
-      octaveAdjustment: -1
-    },
-    {
-      note: 'B',
-      bind: 'f',
-      octaveAdjustment: -1
-    },
-    {
-      note: 'C',
-      bind: 'g',
-    },
-    {
-      note: 'D',
-      bind: 'h',
-    },
-    {
-      note: 'E',
-      bind: 'j',
-    },
-    {
-      note: 'F',
-      bind: 'k',
-    },
-    {
-      note: 'G',
-      bind: 'l',
-    },
-    {
-      note: 'A',
-      bind: ';',
-    },
-    {
-      note: 'B',
-      bind: '\'',
-    },
-  ]
-};
-
-const keyBindingToNoteConfig = [...keyConfigs.black, ...keyConfigs.white].reduce((acc: { [key: string]: NoteConfig }, noteConfig: NoteConfig) => {
-  if (!noteConfig?.bind)
-    return acc
-  return { ...acc, [noteConfig.bind]: noteConfig }
-}, {})
 
 function getNoteLeftMargin(i: number, note: Note) {
   if (note === "C" || note === "F") {
@@ -279,8 +91,16 @@ function DrumSynth() {
     }
   }, [])
 
-  function handlePlayNote(noteConfig: NoteConfig, octave: number) {
-
+  function handlePlayNote(noteConfig: NoteConfig) {
+    setCurrentNoteSelected({
+      note: noteConfig.note,
+      isSharp: noteConfig.isSharp,
+      octave: currentOctave,
+      octaveAdjustment: noteConfig.octaveAdjustment
+    })
+    if (synthEngines) {
+      synthEngines[currentTrack].triggerAttackRelease(`${noteConfig.note}${noteConfig.isSharp ? '#' : ''}${currentOctave + (noteConfig.octaveAdjustment || 0)}`, '16n')
+    }
   }
 
   function getCurrentOctave(): number {
@@ -292,20 +112,20 @@ function DrumSynth() {
   }
 
   function handleKeyPress(key: string): void {
-      const noteConfig = keyBindingToNoteConfig[key]
-      if (noteConfig) {
-        setCurrentNoteSelected({
-          note: noteConfig.note,
-          isSharp: noteConfig.isSharp,
-          octave: getCurrentOctave(),
-          octaveAdjustment: noteConfig.octaveAdjustment
-        })
-        console.log(currentTrack, getCurrentTrack())
-        if (synthEngines) {
-          synthEngines[getCurrentTrack()].triggerAttackRelease(`${noteConfig.note}${noteConfig.isSharp ? '#' : ''}${getCurrentOctave() + (noteConfig.octaveAdjustment || 0)}`, '16n')
-        }
-
+    const noteConfig = keyBindingToNoteConfig[key]
+    if (noteConfig) {
+      setCurrentNoteSelected({
+        note: noteConfig.note,
+        isSharp: noteConfig.isSharp,
+        octave: getCurrentOctave(),
+        octaveAdjustment: noteConfig.octaveAdjustment
+      })
+      console.log(currentTrack, getCurrentTrack())
+      if (synthEngines) {
+        synthEngines[getCurrentTrack()].triggerAttackRelease(`${noteConfig.note}${noteConfig.isSharp ? '#' : ''}${getCurrentOctave() + (noteConfig.octaveAdjustment || 0)}`, '16n')
       }
+
+    }
   }
 
 
@@ -429,6 +249,7 @@ function DrumSynth() {
         onUpdateBpm={handleSetBpm}
         onUpdateMode={handleSetMode}
       />
+      <TrackControls />
     </div>
     <div style={{ display: "flex", justifyContent: "space-between", margin: "33px 58px" }}>
       {
@@ -469,26 +290,14 @@ function DrumSynth() {
             /* TODO: reduce code dupe */
             keyConfigs.black.map((noteConfig, i) => <ActionLedButton
               key={i}
-              isPressed={isSameNote(stepPatterns[currentTrack][stepCounter], noteConfig, currentOctave)}
+              isPressed={mode === ModeEnum.PLAYING && isSameNote(stepPatterns[currentTrack][stepCounter], noteConfig, currentOctave)}
               isBacklightOn={
                 currentNoteSelected.note === noteConfig.note
                 && currentNoteSelected.isSharp === noteConfig.isSharp
                 && currentNoteSelected.octave === currentOctave
                 && currentNoteSelected.octaveAdjustment === noteConfig.octaveAdjustment
               }
-              onButtonPress={
-                () => {
-                  setCurrentNoteSelected({
-                    note: noteConfig.note,
-                    isSharp: noteConfig.isSharp,
-                    octave: currentOctave,
-                    octaveAdjustment: noteConfig.octaveAdjustment
-                  })
-                  if (synthEngines) {
-                    synthEngines[currentTrack].triggerAttackRelease(`${noteConfig.note}${noteConfig.isSharp ? '#' : ''}${currentOctave + (noteConfig.octaveAdjustment || 0)}`, '16n')
-                  }
-                }
-              }
+              onButtonPress={() => handlePlayNote(noteConfig)}
 
               // C and F are compensated to get left margins while other notes will have right margins
               styleProps={{
@@ -505,26 +314,14 @@ function DrumSynth() {
           {
             keyConfigs.white.map((noteConfig, i) => <ActionLedButton
               key={i}
-              isPressed={isSameNote(stepPatterns[currentTrack][stepCounter], noteConfig, currentOctave)}
+              isPressed={mode === ModeEnum.PLAYING && isSameNote(stepPatterns[currentTrack][stepCounter], noteConfig, currentOctave)}
               isBacklightOn={
                 currentNoteSelected.note === noteConfig.note
                 && currentNoteSelected.isSharp === noteConfig.isSharp
                 && currentNoteSelected.octave === currentOctave
                 && currentNoteSelected.octaveAdjustment === noteConfig.octaveAdjustment
               }
-              onButtonPress={
-                () => {
-                  setCurrentNoteSelected({
-                    note: noteConfig.note,
-                    isSharp: noteConfig.isSharp,
-                    octave: currentOctave,
-                    octaveAdjustment: noteConfig.octaveAdjustment
-                  })
-                  if (synthEngines) {
-                    synthEngines[currentTrack].triggerAttackRelease(`${noteConfig.note}${noteConfig.isSharp ? '#' : ''}${currentOctave + (noteConfig.octaveAdjustment || 0)}`, '16n')
-                  }
-                }
-              }
+              onButtonPress={() => handlePlayNote(noteConfig)}
               styleProps={{ marginRight: 29 }}
               colorOff="beige"
             />)

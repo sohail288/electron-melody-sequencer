@@ -10,3 +10,7 @@ ipcRenderer.on('reload-files', () => {
 })
 
 ReactDOM.render(React.createElement(App), document.getElementById("root"));
+
+// document.addEventListener('load', () => {
+//     document.body.setAttribute('style', 'overflow: hidden; height: 100%')
+// })
