@@ -116,18 +116,26 @@ function DrumSynth() {
   }
 
   function handleKeyPress(key: string): void {
-    const noteConfig = keyBindingToNoteConfig[key]
-    if (noteConfig) {
-      setCurrentNoteSelected({
-        note: noteConfig.note,
-        isSharp: noteConfig.isSharp,
-        octave: getCurrentOctave(),
-        octaveAdjustment: noteConfig.octaveAdjustment
-      })
-      console.log(currentTrack, getCurrentTrack())
-      if (synthEngines) {
-        synthEngines[getCurrentTrack()].triggerAttackRelease(`${noteConfig.note}${noteConfig.isSharp ? '#' : ''}${getCurrentOctave() + (noteConfig.octaveAdjustment || 0)}`, '16n')
-      }
+    console.log(key, mode)
+    switch (key.toLowerCase()) {
+      case ' ':
+        setMode(mode === ModeEnum.PLAYING ? ModeEnum.STOPPED : ModeEnum.PLAYING)
+        break
+      default:
+        const noteConfig = keyBindingToNoteConfig[key]
+        if (noteConfig) {
+          setCurrentNoteSelected({
+            note: noteConfig.note,
+            isSharp: noteConfig.isSharp,
+            octave: getCurrentOctave(),
+            octaveAdjustment: noteConfig.octaveAdjustment
+          })
+          console.log(currentTrack, getCurrentTrack())
+          if (synthEngines) {
+            synthEngines[getCurrentTrack()].triggerAttackRelease(`${noteConfig.note}${noteConfig.isSharp ? '#' : ''}${getCurrentOctave() + (noteConfig.octaveAdjustment || 0)}`, '16n')
+          }
+
+        }
 
     }
   }
@@ -135,8 +143,15 @@ function DrumSynth() {
 
   React.useEffect(() => {
     // set up keys
-    document.addEventListener('keypress', e => handleKeyPress(e.key))
-  }, [synthEngines])
+    function keyPressHandler(evt: KeyboardEvent) {
+      evt.preventDefault()
+      handleKeyPress(evt.key)
+    }
+    document.addEventListener('keypress', keyPressHandler)
+    return function() {
+      document.removeEventListener('keypress', keyPressHandler)
+    }
+  }, [synthEngines, mode])
 
   React.useEffect(() => {
     if (mode === ModeEnum.PLAYING) {
