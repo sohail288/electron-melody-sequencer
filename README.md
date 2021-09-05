@@ -1,3 +1,5 @@
+ ![pattern synth](./docs/patternsynth.png)
+
 ## Running
 
 use `npm run build` followed by `npm run startNoCompile`
