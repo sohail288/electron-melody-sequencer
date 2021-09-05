@@ -7,7 +7,7 @@ import TrackController from '../components/TrackController';
 import TrackControls from '../components/TrackControls';
 import { useInterval } from '../hooks';
 import { keyConfigs, keyBindingToNoteConfig } from '../keyConfigs';
-import { ModeEnum, Note, Nullable, StepParams, StepValueEnum, NoteConfig, SelectedNote } from '../types';
+import { ModeEnum, Note, Nullable, StepParams, StepValueEnum, NoteConfig, SelectedNote, activeStepValues } from '../types';
 
 const styles = {
   display: "flex",
@@ -32,6 +32,10 @@ function isSameNote(stepParam: StepParams, noteConfig: NoteConfig, currentOctave
   return stepParam.note === noteConfig.note
     && stepParam.isSharp === noteConfig.isSharp
     && stepParam.octave === ((noteConfig.octaveAdjustment || 0) + currentOctave)
+}
+
+function stepIsActive(stepParam: StepParams): boolean {
+  return activeStepValues.includes(stepParam.state)
 }
 
 function getNoteLeftMargin(i: number, note: Note) {
@@ -290,7 +294,7 @@ function DrumSynth() {
             /* TODO: reduce code dupe */
             keyConfigs.black.map((noteConfig, i) => <ActionLedButton
               key={i}
-              isPressed={mode === ModeEnum.PLAYING && isSameNote(stepPatterns[currentTrack][stepCounter], noteConfig, currentOctave)}
+              isPressed={mode === ModeEnum.PLAYING && isSameNote(stepPatterns[currentTrack][stepCounter], noteConfig, currentOctave) && stepIsActive(stepPatterns[currentTrack][stepCounter])}
               isBacklightOn={
                 currentNoteSelected.note === noteConfig.note
                 && currentNoteSelected.isSharp === noteConfig.isSharp
@@ -314,7 +318,7 @@ function DrumSynth() {
           {
             keyConfigs.white.map((noteConfig, i) => <ActionLedButton
               key={i}
-              isPressed={mode === ModeEnum.PLAYING && isSameNote(stepPatterns[currentTrack][stepCounter], noteConfig, currentOctave)}
+              isPressed={mode === ModeEnum.PLAYING && isSameNote(stepPatterns[currentTrack][stepCounter], noteConfig, currentOctave) && stepIsActive(stepPatterns[currentTrack][stepCounter])}
               isBacklightOn={
                 currentNoteSelected.note === noteConfig.note
                 && currentNoteSelected.isSharp === noteConfig.isSharp

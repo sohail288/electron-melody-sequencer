@@ -4,6 +4,8 @@ export enum StepValueEnum {
   ACCENT
 }
 
+export const activeStepValues = [StepValueEnum.ON, StepValueEnum.ACCENT]
+
 export enum ModeEnum {
   PLAYING,
   STOPPED,
