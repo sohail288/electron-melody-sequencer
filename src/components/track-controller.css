@@ -1,0 +1,64 @@
+/* PAN */
+.panControllerContainer {
+  margin-top: 14px;
+  margin-bottom: 14px;
+  flex-basis: 1px;
+  height: 20px;
+}
+
+.panController {
+  appearance: none;
+  background: #80808000;
+  cursor: pointer;
+  margin: 0;
+  width: 100%;
+}
+
+.panController::-webkit-slider-thumb {
+  position: relative;
+  appearance: none;
+  width: 10px;
+  height: 15px;
+  background-color: grey;
+  z-index: 5;
+}
+
+.panTrack {
+  z-index: 1;
+  position: relative;
+  top: 50%;
+  margin: 0;
+  width: 80%;
+  left: 7%;
+}
+
+.trackButton.selected {
+  color: lightgrey;
+  background-color: grey;
+}
+
+/* VOLUME */
+.volumeController {
+  appearance: none;
+  background: #80808000;
+  cursor: pointer;
+  margin: 0;
+}
+
+.volumeController::-webkit-slider-thumb {
+  position: relative;
+  appearance: none;
+  width: 10px;
+  height: 15px;
+  background-color: grey;
+  z-index: 5;
+}
+
+.volumeTrack {
+  position: relative;
+  top: 50%;
+  margin: 0;
+  width: 138%;
+  left: -23%;
+  transform: rotate(-90deg)translateY(-21%)translateX(9px);
+}

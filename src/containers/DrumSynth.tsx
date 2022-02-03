@@ -1,6 +1,7 @@
 import React from 'react'
 import * as Tone from 'tone'
 import ActionLedButton from '../components/ActionLedButton';
+import Branding from '../components/Branding';
 import Display from '../components/Display';
 import GlobalTransport from '../components/GlobalTransport';
 import TrackController from '../components/TrackController';
@@ -74,7 +75,7 @@ function DrumSynth() {
 
   React.useEffect(() => {
     if (!synthEngines) {
-      //console.log("loading synth engine(s)")
+      console.log("loading synth engine(s)")
       let newSynthEngines = Array(numTracks).fill(0).map(() => new Tone.Synth())
       let volumeNodes: Tone.Volume[] = []
       let panNodes: Tone.Panner[] = []
@@ -92,6 +93,7 @@ function DrumSynth() {
       setSynthEngines(connectedSynths.map(se => se.toDestination()))
       setVolumeNodes(volumeNodes)
       setPanNodes(panNodes)
+      console.log(connectedSynths)
     }
   }, [])
 
@@ -268,7 +270,12 @@ function DrumSynth() {
         onUpdateBpm={handleSetBpm}
         onUpdateMode={handleSetMode}
       />
-      <TrackControls />
+      <TrackControls
+        onChangeFrequency={console.log}
+        frequency={1}
+        onChangeTune={console.log}
+        tune={1}
+      />
     </div>
     <div style={{ display: "flex", justifyContent: "space-between", margin: "33px 58px" }}>
       {
@@ -287,6 +294,7 @@ function DrumSynth() {
         Array(numTracks).fill(null).map((_, i) => <
           TrackController
           key={i}
+          selected={currentTrack === i}
           onSetTrackPan={(val) => handleSetTrackPan(i, val)}
           onSetTrackVolume={(val) => handleSetTrackVolume(i, val)}
           volume={getVolume(i)}
@@ -299,9 +307,7 @@ function DrumSynth() {
       }
     </div>
     <div style={{ display: "flex", margin: "20px 58px", height: "87px" }}>
-      <div style={{ backgroundColor: "darkgray", width: "194px", marginRight: "43px" }}>
-      </div>
-
+      <Branding />
       <div style={{ display: "flex", justifyContent: "space-between", flexDirection: "column" }}>
         <div style={{ display: "flex", justifyContent: "start" }}>
           {/* black keys */}

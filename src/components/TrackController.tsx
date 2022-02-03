@@ -1,4 +1,5 @@
 import React from 'react'
+import "./track-controller.css"
 
 interface Props {
   onSelectTrack: () => void,
@@ -7,9 +8,10 @@ interface Props {
   volume: number;
   pan: number;
   trackNumber: number;
+  selected: boolean;
 }
 
-export default ({ trackNumber, pan, volume, onSelectTrack, onSetTrackPan, onSetTrackVolume }: Props) => {
+export default ({ trackNumber, pan, volume, selected, onSelectTrack, onSetTrackPan, onSetTrackVolume }: Props) => {
   return <div style={{
     height: "100%",
     width: "58px",
@@ -17,11 +19,18 @@ export default ({ trackNumber, pan, volume, onSelectTrack, onSetTrackPan, onSetT
     flexDirection: "column",
     backgroundColor: "darkgrey"
   }}>
-    <input type="range" style={{ marginTop: "14px", marginBottom: "14px", flexBasis: 1 }} value={pan} onChange={(evt) => onSetTrackPan(parseInt(evt.target.value))} min={-50} max={50} />
-    <div style={{ flexGrow: 3 }}>
-
-      <input onChange={(e) => onSetTrackVolume(parseInt(e.target.value))} type="range" style={{ height: "100%", width: "90px", transform: "rotate(-90deg)translateY(-21%)translateX(9px)" }} value={volume} />
+    <div className="panControllerContainer">
+      <hr className="panTrack" />
+      <input type="range" className="panController" value={pan} onChange={(evt) => onSetTrackPan(parseInt(evt.target.value))} min={-100} max={100}  list="pan-tickmarks" />
+      <datalist id="pan-tickmarks">
+        <option value="0"></option>
+      </datalist>
     </div>
-    <button onClick={onSelectTrack}>{trackNumber}</button>
+
+    <div style={{ flexGrow: 3 }}>
+      <hr className="volumeTrack" />
+      <input className="volumeController" onChange={(e) => onSetTrackVolume(parseInt(e.target.value))} type="range" style={{ height: "100%", width: "90px", transform: "rotate(-90deg)translateY(-21%)translateX(9px)" }} value={volume} />
+    </div>
+    <button className={[`${selected ? 'selected': ''}`, "trackButton"].join(' ')} onClick={onSelectTrack}>{trackNumber}</button>
   </div>
 }
